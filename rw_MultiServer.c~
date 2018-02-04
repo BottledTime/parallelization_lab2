@@ -219,13 +219,13 @@ void* ServerEcho( void* my_rank ){
 
    } /* end if */
 
-   // Unlock mutex
-	mylib_rwlock_unlock(&rwlock);
-	
  	// Send str back to client
 	write(clientFileDescriptor,theArray[pos],STR_LEN);
 	printf("\nechoing back to client \n\n");
    
+   // Unlock mutex
+	mylib_rwlock_unlock(&rwlock);
+
 	// Close connection
 	close(clientFileDescriptor);
 
