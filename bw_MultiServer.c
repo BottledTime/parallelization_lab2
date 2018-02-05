@@ -52,20 +52,20 @@ int main(int argc, char* argv[]){
 	int i;
 	long thread;
 	pthread_t t[REQUEST_THREADS];
-	
-	
+
+
 	// Safe-guard for more than 2 arguments
 	if (argc > 3){
    	printf("Too many input arguments. Supply only PORT and N.\n\n");
    	printf("Terminating ... \n\n");
    	exit(0);
 	}	/* end for */
-	
+
 	// Get port number from command line
 	port = strtol(argv[1], NULL, 10);
 	// Get array size from command line
 	n = strtol(argv[2], NULL, 10);
-   
+
    // Initialize mutex
 	pthread_mutex_init(&mutex, NULL);
 
@@ -85,33 +85,33 @@ int main(int argc, char* argv[]){
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
 		printf("\nsocket has been created \n");
 		listen(serverFileDescriptor,2000);
-		
-		sleep(.5);
-		
+
+		// sleep(.5);
+
 		while(1){        //loop infinity
-		
+
 			   for (thread=0; thread<REQUEST_THREADS; thread++){  //can support REQUEST_THREADS clients at a time
-			
+
 			   // Accept connection from client
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
 				printf("\nConnected to client %d\n",clientFileDescriptor);
-				
+
 				// Handle multiple clients with pthreads
 				pthread_create(&t[thread],NULL,ServerEcho,(void *)clientFileDescriptor);
 			} /* end for */
 		} /* end while */
-		
+
 	// close connection
 	close(serverFileDescriptor);
-	
+
 	// destroy mutex
 	pthread_mutex_destroy(&mutex);
-	
+
    } /* end if */
 	else{
 		printf("nsocket creation failed\n\n");
 	} /* end else */
-	
+
    // Terminate successfully
 	return 0;
 } /* end main */
@@ -122,14 +122,14 @@ void* ServerEcho( void* my_rank ){
 	int clientFileDescriptor = (int) my_rank;
 	int clnt_rank;
 	int pos, randRW;
-	
+
 	// Read request from client
    //printf("\nreading from client %d \n",clientFileDescriptor);
 	read(clientFileDescriptor,&clnt_rank,sizeof(clnt_rank));
-         
+
 	// Identify client rank:
 	pos=rand_r( &clnt_rank ) % n;
-	
+
 	// Identify request (read or write) from client:
 	randRW=rand_r( &clnt_rank ) % 100;
 	   /* randRW goes from 0 to 99. So we have 5% chances
@@ -137,7 +137,7 @@ void* ServerEcho( void* my_rank ){
 	      Careful not to divide by 5: the numbers will range
 	      from 0 to 4, and a number equal to 4 has 20%
 	      chance of happening. */
-	
+
    // Busy-wait barrier:
 
       // Lock Mutex
@@ -146,12 +146,12 @@ void* ServerEcho( void* my_rank ){
       counter++;
       // Unlock mutex
       pthread_mutex_unlock(&mutex);
-      // Barrier condition  
+      // Barrier condition
       while (counter < REQUEST_THREADS);
 
    // end busy-wait barrier. Go to action
-   
-	   // 5% are write operations, others are reads. 
+
+	   // 5% are write operations, others are reads.
 	   if (randRW >= 94){
          // Modify string if the above is true
 	      sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
@@ -165,7 +165,7 @@ void* ServerEcho( void* my_rank ){
 
 	// Close connection
 	close(clientFileDescriptor);
-	
+
 	// return something to avoid warnings
 	return 0;
 } /* end ServerEcho */
