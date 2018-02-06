@@ -41,7 +41,7 @@ typedef struct {
 } mylib_rwlock_t;
 
 // Define and declare global variables
-#define REQUEST_THREADS 10000
+#define REQUEST_THREADS 1000
 #define STR_LEN 1000
 int port, n, writes;
 int* seed;
@@ -95,9 +95,12 @@ void mylib_rwlock_unlock(mylib_rwlock_t *l) {
 	else if (l -> readers > 0)
 	l -> readers --;
 	pthread_mutex_unlock(&(l -> read_write_lock));
-	if ((l -> readers == 0) && (l -> pending_writers > 0))
+
+	if (l -> readers > 0)
+	pthread_cond_broadcast(&(l -> readers_proceed));
+	else if ((l -> readers == 0) && (l -> pending_writers > 0))
 	pthread_cond_signal(&(l -> writer_proceed));
-	else if (l -> readers > 0)
+	else if ((l -> readers == 0) && (l -> pending_writers == 0))
 	pthread_cond_broadcast(&(l -> readers_proceed));
 }
 
@@ -161,6 +164,12 @@ int main(int argc, char* argv[]){
 				// Handle multiple clients with pthreads
 				pthread_create(&t[i],NULL,ServerEcho,(void *)clientFileDescriptor);
 			} /* end for */
+
+			// Join threads
+			for (i = 0; i < REQUEST_THREADS; i++){
+				pthread_join(&t[i], NULL);
+			} /* end for */
+
 		} /* end while */
 
 		// close connection
@@ -195,6 +204,7 @@ void* ServerEcho( void* my_rank ){
 
 	// Identify request (read or write) from client:
 	randRW=rand_r( &clnt_rank ) % 100;
+
 	/* randRW goes from 0 to 99. So we have 5% chances
 	of this number being larger than or equal to 94.
 	Careful not to divide by 5: the numbers will range
@@ -202,14 +212,14 @@ void* ServerEcho( void* my_rank ){
 	chance of happening. */
 
 	// Lock as a read request
-	mylib_rwlock_rlock(&rwlock);
+	// mylib_rwlock_rlock(&rwlock);
 
 	// 5% are write operations, others are reads.
 	if (randRW >= 94){
 		/* The above is true this is a write request.
 		Thus, unlock read  (line 205) and lock write (below) */
 
-		mylib_rwlock_unlock(&rwlock);
+		// mylib_rwlock_unlock(&rwlock);
 		mylib_rwlock_wlock(&rwlock);
 
 		// Modify string
@@ -217,13 +227,18 @@ void* ServerEcho( void* my_rank ){
 		writes++;
 		printf("Total of writes is %d \n", writes);
 
+		// Unlock mutex
+		mylib_rwlock_unlock(&rwlock);
+
 	} /* end if */
 
-	// Unlock mutex
+	// Send str back to client
+	mylib_rwlock_rlock(&rwlock);
+
+	write(clientFileDescriptor,theArray[pos],STR_LEN);
+
 	mylib_rwlock_unlock(&rwlock);
 
-	// Send str back to client
-	write(clientFileDescriptor,theArray[pos],STR_LEN);
 	printf("\nechoing back to client \n\n");
 
 	// Close connection

@@ -97,12 +97,23 @@ int main(int argc, char* argv[]){
 
 				// Accept connection from client
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("\nConnected to client %d\n",clientFileDescriptor);
+
+				//printf("\nConnected to client %d\n",clientFileDescriptor);
 
 				// Handle multiple clients with pthreads
 				pthread_create(&t[thread],NULL,ServerEcho,(void *)clientFileDescriptor);
 			} /* end for */
+
+
+			// Join threads
+			for (thread = 0; thread < REQUEST_THREADS; thread++){
+				pthread_join(&t[thread], NULL);
+			} /* end for */
+
+
 		} /* end while */
+
+		printf("Terminating server... \n\n");
 
 		// close connection
 		close(serverFileDescriptor);
@@ -138,6 +149,7 @@ void* ServerEcho( void* my_rank ){
 
 	// Identify request (read or write) from client:
 	randRW=rand_r( &clnt_rank ) % 100;
+
 	/* randRW goes from 0 to 99. So we have 5% chances
 	of this number being larger than or equal to 94.
 	Careful not to divide by 5: the numbers will range
@@ -152,8 +164,12 @@ void* ServerEcho( void* my_rank ){
 	/* If this is the last thread, resent count to 0 and count_sem to 1
 	(both can now be reused in another barrier). Unlock every operating
 	thread with sem_post (barrier_sem should not be reused due to race cond.)
+
 	*/
-	if ( counter == REQUEST_THREADS - 1){
+
+	counter++;
+
+	if ( counter == REQUEST_THREADS ){
 		// Reset
 		counter=0;
 		sem_post(&count_sem);
@@ -168,11 +184,11 @@ void* ServerEcho( void* my_rank ){
 	so next thread can go in the barrier (otherwise sem_wait in line 150
 	will lock the threads forever), and lock the thread in the barrier */
 	else{
-		counter++;
+
+		printf("%d\n",counter);
 		sem_post(&count_sem);
 		sem_wait(&barrier_sem);
 	}
-
 
 	// end semaphore barrier. Go to action
 
@@ -181,12 +197,12 @@ void* ServerEcho( void* my_rank ){
 		// Modify string if the above is true
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
 		writes++;
-		printf("Total of writes is %d \n", writes);
+		//printf("Total of writes is %d \n", writes);
 	} /* end if */
 
 	// Send str back to client
 	write(clientFileDescriptor,theArray[pos],STR_LEN);
-	printf("\nechoing back to client \n\n");
+	//printf("\nechoing back to client \n\n");
 
 	// Close connection
 	close(clientFileDescriptor);
