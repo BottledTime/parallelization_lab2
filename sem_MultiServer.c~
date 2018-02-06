@@ -32,7 +32,7 @@
 #include <semaphore.h>
 
 // Define and declare global variables
-#define REQUEST_THREADS 1000
+#define REQUEST_THREADS 2000
 #define STR_LEN 1000
 int port, n, counter, writes;
 int* seed;
@@ -102,20 +102,12 @@ int main(int argc, char* argv[]){
 				// Handle multiple clients with pthreads
 				pthread_create(&t[thread],NULL,ServerEcho,(void *)clientFileDescriptor);
 			} /* end for */
-			
-			
-			// Join threads
-			for (thread = 0; thread < REQUEST_THREADS; thread++){ 
-	pthread_join(&t[thread], NULL); 
-   } /* end for */
-			
-			
 		} /* end while */
 		
 	printf("Terminating server... \n\n");	
 		
 	// close connection
-	close(serverFileDescriptor);
+//	close(serverFileDescriptor);
 	
 	// destroy semaphores
 	sem_destroy(&barrier_sem);
@@ -162,12 +154,8 @@ void* ServerEcho( void* my_rank ){
       /* If this is the last thread, resent count to 0 and count_sem to 1
       (both can now be reused in another barrier). Unlock every operating
       thread with sem_post (barrier_sem should not be reused due to race cond.)   
-
       */
-      
-         counter++;
-      
-      if ( counter == REQUEST_THREADS ){
+      if ( counter == REQUEST_THREADS - 1){
          // Reset
          counter=0;
          sem_post(&count_sem);
@@ -182,8 +170,8 @@ void* ServerEcho( void* my_rank ){
          so next thread can go in the barrier (otherwise sem_wait in line 150
          will lock the threads forever), and lock the thread in the barrier */
       else{
-
-         printf("%d\n",counter);
+         counter++;
+         printf("%d",counter);
          sem_post(&count_sem);
          sem_wait(&barrier_sem);
       }
