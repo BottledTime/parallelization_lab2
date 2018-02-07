@@ -86,12 +86,22 @@ int main(int argc, char* argv[]){
 void *ConnectServer(void* rank){
 
     // Declare variables
-    int errnum;
     struct sockaddr_in sock_var;
-    long my_rank = (long) rank;
+    unsigned int my_rank = (intptr_t) rank;
+    unsigned int toSend[2];
+
+    int randomNumber = rand_r(&my_rank);
+    // The first value we will send is the position in the array
+    toSend[0] = randomNumber % n;
+    // The second value we will send is whether this is a read or write
+    if ((randomNumber % 20) < 19) {
+        toSend[1] = 0;
+    } else {
+        toSend[1] = 1;
+    }
+
     int clientFileDescriptor = socket(AF_INET,SOCK_STREAM,0);
     if (clientFileDescriptor == -1) {
-        errnum = errno;
         printf("socket creation failed\n");
         fprintf(stderr, "Value of errno: %d\n", errno);
         perror("Error printed by perror");
@@ -112,7 +122,7 @@ void *ConnectServer(void* rank){
         printf("Connected to server %d\n\n",clientFileDescriptor);
 
         // Send to thread rank to server
-        write(clientFileDescriptor,&my_rank,sizeof(my_rank));
+        write(clientFileDescriptor,toSend,sizeof(toSend));
 
         // Read from server
         read(clientFileDescriptor,str_ser,STR_LEN);
@@ -121,11 +131,9 @@ void *ConnectServer(void* rank){
         printf("String from Server: %s\n\n",str_ser);
     }
     else{
-        errnum = errno;
         printf("socket connection failed\n");
         fprintf(stderr, "Value of errno: %d\n", errno);
         perror("Error printed by perror");
-        // fprintf(stderr, "Error opening file: %s\n", strerror( errnum ));
     }
 
     // Close connection

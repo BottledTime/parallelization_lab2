@@ -23,6 +23,7 @@
 // include headers
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -101,13 +102,13 @@ int main(int argc, char* argv[]){
 				//printf("\nConnected to client %d\n",clientFileDescriptor);
 
 				// Handle multiple clients with pthreads
-				pthread_create(&t[thread],NULL,ServerEcho,(void *)clientFileDescriptor);
+				pthread_create(&t[thread],NULL,ServerEcho,(void *) (intptr_t) clientFileDescriptor);
 			} /* end for */
 
 
 			// Join threads
 			for (thread = 0; thread < REQUEST_THREADS; thread++){
-				pthread_join(&t[thread], NULL);
+				pthread_join(t[thread], NULL);
 			} /* end for */
 
 
@@ -136,25 +137,15 @@ int main(int argc, char* argv[]){
 void* ServerEcho( void* my_rank ){
 
 	// Declare variables
-	int clientFileDescriptor = (int) my_rank;
-	int clnt_rank;
-	int pos, randRW, i;
+	int clientFileDescriptor = (intptr_t) my_rank;
+	unsigned int sentValues[2];
+	int i;
 
 	// Read request from client
 	//printf("\nreading from client %d \n",clientFileDescriptor);
-	read(clientFileDescriptor,&clnt_rank,sizeof(clnt_rank));
-
-	// Identify client rank:
-	pos=rand_r( &clnt_rank ) % n;
-
-	// Identify request (read or write) from client:
-	randRW=rand_r( &clnt_rank ) % 100;
-
-	/* randRW goes from 0 to 99. So we have 5% chances
-	of this number being larger than or equal to 94.
-	Careful not to divide by 5: the numbers will range
-	from 0 to 4, and a number equal to 4 has 20%
-	chance of happening. */
+	read(clientFileDescriptor,sentValues,sizeof(sentValues));
+	unsigned int toWrite = sentValues[1];
+	unsigned int pos = sentValues[0];
 
 	// Semaphore barrier:
 
@@ -185,7 +176,7 @@ void* ServerEcho( void* my_rank ){
 	will lock the threads forever), and lock the thread in the barrier */
 	else{
 
-		printf("%d\n",counter);
+		//printf("%d\n",counter);
 		sem_post(&count_sem);
 		sem_wait(&barrier_sem);
 	}
@@ -193,7 +184,7 @@ void* ServerEcho( void* my_rank ){
 	// end semaphore barrier. Go to action
 
 	// 5% are write operations, others are reads.
-	if (randRW >= 94){
+	if (toWrite){
 		// Modify string if the above is true
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
 		writes++;

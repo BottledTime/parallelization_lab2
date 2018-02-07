@@ -23,6 +23,7 @@
 // include headers
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -45,6 +46,7 @@ void* ServerEcho( void* ); // Thread function
 /* Main Function */
 int main(int argc, char* argv[]){
 
+	printf("whu-oh");
 	// Declare local variables
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -98,8 +100,14 @@ int main(int argc, char* argv[]){
 				printf("\nConnected to client %d\n",clientFileDescriptor);
 
 				// Handle multiple clients with pthreads
-				pthread_create(&t[i],NULL,ServerEcho,(void *)clientFileDescriptor);
+				pthread_create(&t[i],NULL,ServerEcho,(void *) (intptr_t) clientFileDescriptor);
 			} /* end for */
+
+			// Join threads
+			for (i = 0; i < REQUEST_THREADS; i++){
+				pthread_join(t[i], NULL);
+			} /* end for */
+
 		} /* end while */
 
 		// close connection
@@ -120,30 +128,21 @@ int main(int argc, char* argv[]){
 void* ServerEcho( void* my_rank ){
 
 	// Declare variables
-	int clientFileDescriptor = (int) my_rank;
-	int clnt_rank;
-	int pos, randRW;
+	int clientFileDescriptor = (intptr_t)  my_rank;
+	unsigned int sentValues[2];
 
 	// Read request from client
-	read(clientFileDescriptor,&clnt_rank,sizeof(clnt_rank));
+	read(clientFileDescriptor,sentValues,sizeof(sentValues));
+	unsigned int toWrite = sentValues[1];
+	unsigned int pos = sentValues[0];
+
 	/* printf("\nreading from client:%d \n",serv_rec); */
-
-	// Identify client rank:
-	pos=rand_r(&clnt_rank)%n;
-
-	// Identify request (read or write) from client:
-	randRW=rand_r(&clnt_rank)%100;
-	/* randRW goes from 0 to 99. So we have 5% chances
-	of this number being larger than or equal to 94.
-	Careful not to divide by 5: the numbers will range
-	from 0 to 4, and a number equal to 4 has 20%
-	chance of happening. */
 
 	// Lock mutex
 	pthread_mutex_lock(&mutex);
 
 	// 5% are write operations, others are reads.
-	if (randRW >= 94){
+	if (toWrite){
 		// Modify string if the above is true
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
 		// writes++;
