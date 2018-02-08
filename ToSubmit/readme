@@ -1,0 +1,23 @@
+To compile our code, you can simply used the supplied Makefile by typing:
+make
+
+This will compile the client and 4 server implementations. If you would like
+to compile these yourself without the Makefile, you can do as follows:
+
+Compile the client:
+gcc -o client MultiClient.c -g -Wall -lpthread
+
+Compile the server with a single mutex for the array:
+gcc -o mtx_server mtx_MultiServer.c -g -Wall -lpthread
+
+Compile the server with a mutex for each element of the array:
+gcc -o mtx_foreach_server mtx_foreach_MultiServer.c -g -Wall -lpthread
+
+Compile the server with a read-write lock for each element of the array:
+gcc -o rw_foreach_server rw_foreach_MultiServer.c -g -Wall -lpthread
+
+Compile the server with a single read-write lock for the array:
+gcc -o rw_server rw_MultiServer.c -g -Wall -lpthread
+
+All of these programs are called with 2 commandline arguments. The first is the
+port number that the server is on. The second is the size of the server's array.
