@@ -162,10 +162,11 @@ void* ServerEcho( void* my_rank ){
 	pthread_mutex_unlock(&mutex);
 
 	// Send str back to client
-	write(clientFileDescriptor,theArray[pos],STR_LEN);
+	char* myData = theArray[pos];
 	GET_TIME(finish);
 	totalTime += (finish - start);
 	// printf("\nechoing back to client \n\n");
+	write(clientFileDescriptor,myData,STR_LEN);
 
 	// Close connection
 	close(clientFileDescriptor);

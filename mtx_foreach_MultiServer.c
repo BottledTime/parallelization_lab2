@@ -72,8 +72,8 @@ int main(int argc, char* argv[]){
 	// Initialize mutexes
 	mutexes= malloc(n*sizeof(pthread_mutex_t));
 	for (i = 0; i < n; i++){
-     	pthread_mutex_init(&mutexes[i], NULL);
-   }
+		pthread_mutex_init(&mutexes[i], NULL);
+	}
 
 	// Allocate memory for theArray using malloc and fill the array
 	theArray = (char **)malloc(n*sizeof(char *));
@@ -123,13 +123,13 @@ int main(int argc, char* argv[]){
 		close(serverFileDescriptor);
 
 		// destroy mutex
-   	for (i = 0; i < n; i++){
-      	pthread_mutex_destroy(&mutexes[i]);
-   	}
-   	
-   	// free memory
-   	free(t);
-   	
+		for (i = 0; i < n; i++){
+			pthread_mutex_destroy(&mutexes[i]);
+		}
+
+		// free memory
+		free(t);
+
 	} /* end if */
 	else{
 		printf("nsocket creation failed\n\n");
@@ -156,30 +156,28 @@ void* ServerEcho( void* my_rank ){
 
 	GET_TIME(start);
 
-		// Lock mutex for this position
-   	pthread_mutex_lock(&mutexes[pos]);
+	// Lock mutex for this position
+	pthread_mutex_lock(&mutexes[pos]);
 
 	// 5% are write operations, others are reads.
 	if (toWrite){
-	
-	
+
 		// Modify string if the above is true
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
 		// writes++;
 		// printf("Total of writes is %d \n", writes);
-		
 
-		
 	} /* end if */
 
-		// Unlock mutex
-   	pthread_mutex_unlock(&mutexes[pos]);
+	// Unlock mutex
+	pthread_mutex_unlock(&mutexes[pos]);
 
 	// Send str back to client
-	write(clientFileDescriptor,theArray[pos],STR_LEN);
+	char* myData = theArray[pos];
 	GET_TIME(finish);
 	totalTime += (finish - start);
 	// printf("\nechoing back to client \n\n");
+	write(clientFileDescriptor,myData,STR_LEN);
 
 	// Close connection
 	close(clientFileDescriptor);
