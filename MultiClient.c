@@ -76,7 +76,8 @@ int main(int argc, char* argv[]){
 
     GET_TIME(finish);
 
-    printf("The elapsed time is %e seconds\n", finish-start);
+    // printf("The elapsed time is %e seconds\n", finish-start);
+    printf("%f\n", finish-start);
 
     // Terminate successfully
     return 0;
@@ -119,7 +120,7 @@ void *ConnectServer(void* rank){
     if(connect(clientFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
 
         // Comment when testing
-        printf("Connected to server %d\n\n",clientFileDescriptor);
+        // printf("Connected to server %d\n\n",clientFileDescriptor);
 
         // Send to thread rank to server
         write(clientFileDescriptor,toSend,sizeof(toSend));
@@ -128,7 +129,7 @@ void *ConnectServer(void* rank){
         read(clientFileDescriptor,str_ser,STR_LEN);
 
         // Comment when testing
-        printf("String from Server: %s\n\n",str_ser);
+        // printf("String from Server: %s\n\n",str_ser);
     }
     else{
         printf("socket connection failed\n");

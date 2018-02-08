@@ -31,6 +31,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include "timer.h"
+
+double totalTime;
 
 // Define and declare global variables
 #define REQUEST_THREADS 1000
@@ -47,6 +50,8 @@ void* ServerEcho( void* ); // Thread function
 /*--------------------------------------------------------------------*/
 /* Main Function */
 int main(int argc, char* argv[]){
+
+	totalTime = 0;
 
 	// Declare local variables
 	struct sockaddr_in sock_var;
@@ -78,7 +83,7 @@ int main(int argc, char* argv[]){
 	for (i = 0; i < n; i++){
 		theArray[i]=(char *)malloc(STR_LEN*sizeof(char));
 		sprintf(theArray[i],"String %d: the initial value\n", i);
-		printf("\nArray %d created as %s\n\n", i, theArray[i]);
+		// printf("\nArray %d created as %s\n\n", i, theArray[i]);
 	} /* end for */
 
 	// Network stuff
@@ -87,7 +92,7 @@ int main(int argc, char* argv[]){
 	sock_var.sin_family=AF_INET;
 
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
-		printf("\nsocket has been created \n");
+		// printf("\nsocket has been created \n");
 		listen(serverFileDescriptor,2000);
 
 		// sleep(.5);
@@ -110,11 +115,11 @@ int main(int argc, char* argv[]){
 			for (thread = 0; thread < REQUEST_THREADS; thread++){
 				pthread_join(t[thread], NULL);
 			} /* end for */
-
+			printf("%f\n", totalTime);
 
 		} /* end while */
 
-		printf("Terminating server... \n\n");
+		// printf("Terminating server... \n\n");
 
 		// close connection
 		close(serverFileDescriptor);
@@ -137,6 +142,8 @@ int main(int argc, char* argv[]){
 void* ServerEcho( void* my_rank ){
 
 	// Declare variables
+	double start;
+	double finish;
 	int clientFileDescriptor = (intptr_t) my_rank;
 	unsigned int sentValues[2];
 	int i;
@@ -148,6 +155,7 @@ void* ServerEcho( void* my_rank ){
 	unsigned int pos = sentValues[0];
 
 	// Semaphore barrier:
+	GET_TIME(start);
 
 	// Lock all threads (this locks them as each thread calls sem_wait()
 	sem_wait( &count_sem );
@@ -193,6 +201,8 @@ void* ServerEcho( void* my_rank ){
 
 	// Send str back to client
 	write(clientFileDescriptor,theArray[pos],STR_LEN);
+	GET_TIME(finish);
+	totalTime += (finish - start);
 	//printf("\nechoing back to client \n\n");
 
 	// Close connection

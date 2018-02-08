@@ -30,6 +30,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "timer.h"
+
+double totalTime;
 
 // Define and declare global variables
 #define REQUEST_THREADS 1000
@@ -46,7 +49,6 @@ void* ServerEcho( void* ); // Thread function
 /* Main Function */
 int main(int argc, char* argv[]){
 
-	printf("whu-oh");
 	// Declare local variables
 	struct sockaddr_in sock_var;
 	int serverFileDescriptor=socket(AF_INET,SOCK_STREAM,0);
@@ -72,7 +74,7 @@ int main(int argc, char* argv[]){
 	for (i = 0; i < n; i++){
 		theArray[i]=(char *)malloc(STR_LEN*sizeof(char));
 		sprintf(theArray[i],"String %d: the initial value\n", i);
-		printf("Array %d created as %s\n\n", i, theArray[i]);
+		// printf("Array %d created as %s\n\n", i, theArray[i]);
 	} /* end for */
 
 	// Network stuff
@@ -84,7 +86,7 @@ int main(int argc, char* argv[]){
 	pthread_mutex_init(&mutex, NULL);
 
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
-		printf("\nsocket has been created \n");
+		// printf("\nsocket has been created \n");
 		listen(serverFileDescriptor,2000);
 
 		// This sleep was causing a warning, since it takes an integer argument,
@@ -93,11 +95,13 @@ int main(int argc, char* argv[]){
 
 		while(1){        //loop infinity
 
+			totalTime = 0;
+
 			for(i=0; i<REQUEST_THREADS; i++){  //can support REQUEST_THREADS clients at a time
 
 				// Accept connection from client
 				clientFileDescriptor=accept(serverFileDescriptor,NULL,NULL);
-				printf("\nConnected to client %d\n",clientFileDescriptor);
+				// printf("\nConnected to client %d\n",clientFileDescriptor);
 
 				// Handle multiple clients with pthreads
 				pthread_create(&t[i],NULL,ServerEcho,(void *) (intptr_t) clientFileDescriptor);
@@ -107,6 +111,7 @@ int main(int argc, char* argv[]){
 			for (i = 0; i < REQUEST_THREADS; i++){
 				pthread_join(t[i], NULL);
 			} /* end for */
+			printf("%f\n", totalTime);
 
 		} /* end while */
 
@@ -128,6 +133,8 @@ int main(int argc, char* argv[]){
 void* ServerEcho( void* my_rank ){
 
 	// Declare variables
+	double start;
+	double finish;
 	int clientFileDescriptor = (intptr_t)  my_rank;
 	unsigned int sentValues[2];
 
@@ -137,6 +144,8 @@ void* ServerEcho( void* my_rank ){
 	unsigned int pos = sentValues[0];
 
 	/* printf("\nreading from client:%d \n",serv_rec); */
+
+	GET_TIME(start);
 
 	// Lock mutex
 	pthread_mutex_lock(&mutex);
@@ -154,7 +163,9 @@ void* ServerEcho( void* my_rank ){
 
 	// Send str back to client
 	write(clientFileDescriptor,theArray[pos],STR_LEN);
-	printf("\nechoing back to client \n\n");
+	GET_TIME(finish);
+	totalTime += (finish - start);
+	// printf("\nechoing back to client \n\n");
 
 	// Close connection
 	close(clientFileDescriptor);

@@ -51,7 +51,7 @@ int port, n, writes;
 int* seed;
 char** theArray;
 pthread_mutex_t mutex;
-mylib_rwlock_t rwlock;
+mylib_rwlock_t* rwlocks;
 
 // Function prototypes
 void* ServerEcho( void* ); // Thread function
@@ -148,8 +148,11 @@ int main(int argc, char* argv[]){
 	// Initialize mutex
 	pthread_mutex_init(&mutex, NULL);
 
-	// Initialize rwlock
-	mylib_rwlock_init(&rwlock);
+	// Initialize rwlocks
+	rwlocks = (mylib_rwlock_t *)malloc(n*sizeof(mylib_rwlock_t));
+	for (i = 0; i < n; i++) {
+		mylib_rwlock_init(&rwlocks[i]);
+	}
 
 	if(bind(serverFileDescriptor,(struct sockaddr*)&sock_var,sizeof(sock_var))>=0){
 		// printf("\nsocket has been created \n");
@@ -217,7 +220,7 @@ void* ServerEcho( void* my_rank ){
 		Thus, unlock read  (line 205) and lock write (below) */
 
 		// mylib_rwlock_unlock(&rwlock);
-		mylib_rwlock_wlock(&rwlock);
+		mylib_rwlock_wlock(&rwlocks[pos]);
 
 		// Modify string
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
@@ -225,16 +228,16 @@ void* ServerEcho( void* my_rank ){
 		// printf("Total of writes is %d \n", writes);
 
 		// Unlock mutex
-		mylib_rwlock_unlock(&rwlock);
+		mylib_rwlock_unlock(&rwlocks[pos]);
 
 	} /* end if */
 
 	// Send str back to client
-	mylib_rwlock_rlock(&rwlock);
+	mylib_rwlock_rlock(&rwlocks[pos]);
 
 	char* myData = theArray[pos];
 
-	mylib_rwlock_unlock(&rwlock);
+	mylib_rwlock_unlock(&rwlocks[pos]);
 	GET_TIME(finish);
 	totalTime += (finish - start);
 
