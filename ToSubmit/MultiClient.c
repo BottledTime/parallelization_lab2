@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
     // Declare local variables
     long thread;
     pthread_t thread_handles[REQUEST_THREADS];
-    double start, finish;
+    // double start, finish;
 
     // Safe-guard for more than 2 arguments
     if (argc > 3){
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]){
     n = strtol(argv[2], NULL, 10);
 
     // Start multiclient requests
-    GET_TIME(start);
+    // GET_TIME(start);
 
     for (thread=0; thread<REQUEST_THREADS; thread++){
         pthread_create(&thread_handles[thread], NULL, ConnectServer, (void*) thread);
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){
         pthread_join(thread_handles[thread], NULL);
     } /* end for */
 
-    GET_TIME(finish);
+    // GET_TIME(finish);
 
     // printf("The elapsed time is %e seconds\n", finish-start);
     // printf("%f\n", finish-start);
