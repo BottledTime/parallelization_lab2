@@ -221,7 +221,7 @@ void* ServerEcho( void* my_rank ){
 
 		// Modify string
 		sprintf(theArray[pos], "String %d has been modified by a write request\n", pos);
-		writes++;
+		//writes++;
 		// printf("Total of writes is %d \n", writes);
 
 		// Unlock mutex
